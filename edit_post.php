@@ -1,0 +1,130 @@
+<?php
+include 'db.php';
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$post_id = $_GET['post_id'];
+$sql = "SELECT * FROM Posts WHERE id='$post_id' AND user_id='{$_SESSION['user_id']}'";
+$result = $conn->query($sql);
+
+if ($result->num_rows == 0) {
+    echo "Post not found or you do not have permission to edit this post.";
+    exit();
+}
+
+$post = $result->fetch_assoc();
+
+// Fetch areas
+$areas_sql = "SELECT id, name FROM Area ORDER BY name ASC";
+$areas_result = $conn->query($areas_sql);
+$areas = [];
+while ($area = $areas_result->fetch_assoc()) {
+    $areas[] = $area;
+}
+
+// Fetch vehicles
+$vehicles_sql = "SELECT vehicle_id, name FROM vehicle ORDER BY name ASC";
+$vehicles_result = $conn->query($vehicles_sql);
+$vehicles = [];
+while ($vehicle = $vehicles_result->fetch_assoc()) {
+    $vehicles[] = $vehicle;
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $travel_time = date("H:i", strtotime($_POST['travel_time'])); // Convert to 24-hour format
+    $start_area = $_POST['start_area'];
+    $end_area = $_POST['end_area'];
+    $travel_date = $_POST['travel_date'];
+    $description = $_POST['description'];
+    $vehicle = $_POST['vehicle'];
+    $gender_preference = $_POST['gender_preference'];
+
+    $update_sql = "UPDATE Posts SET travel_time='$travel_time', start_area='$start_area', end_area='$end_area', travel_date='$travel_date', description='$description', vehicle='$vehicle', gender_preference='$gender_preference' WHERE id='$post_id' AND user_id='{$_SESSION['user_id']}'";
+
+    if ($conn->query($update_sql) === TRUE) {
+        header("Location: all_posts.php");
+        exit();
+    } else {
+        echo "Error updating record: " . $conn->error;
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Post</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center h-screen">
+<div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-4xl">
+    <h2 class="text-2xl font-bold text-center text-gray-800 mb-4">Edit Post</h2>
+    <form method="post" action="edit_post.php?post_id=<?php echo $post_id; ?>">
+        <div class="mb-4">
+            <label for="travel_time" class="block text-gray-600 font-semibold mb-2">Travel Time:</label>
+            <select id="travel_time" name="travel_time" required class="bg-gray-50 p-2 rounded-md w-full">
+                <?php for ($i = 0; $i < 24; $i++): ?>
+                    <?php
+                    $time = sprintf("%02d:00", $i);
+                    ?>
+                    <option value="<?php echo $time; ?>" <?php if ($post['travel_time'] == $time) echo 'selected'; ?>><?php echo $time; ?></option>
+                    <?php $time = sprintf("%02d:30", $i); ?>
+                    <option value="<?php echo $time; ?>" <?php if ($post['travel_time'] == $time) echo 'selected'; ?>><?php echo $time; ?></option>
+                <?php endfor; ?>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="start_area" class="block text-gray-600 font-semibold mb-2">Travel Starting Area:</label>
+            <select id="start_area" name="start_area" required class="bg-gray-50 p-2 rounded-md w-full">
+                <?php foreach ($areas as $area): ?>
+                    <option value="<?php echo $area['id']; ?>" <?php if ($post['start_area'] == $area['id']) echo 'selected'; ?>><?php echo $area['name']; ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="end_area" class="block text-gray-600 font-semibold mb-2">Travel End Area:</label>
+            <select id="end_area" name="end_area" required class="bg-gray-50 p-2 rounded-md w-full">
+                <?php foreach ($areas as $area): ?>
+                    <option value="<?php echo $area['id']; ?>" <?php if ($post['end_area'] == $area['id']) echo 'selected'; ?>><?php echo $area['name']; ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="travel_date" class="block text-gray-600 font-semibold mb-2">Travel Date:</label>
+            <input type="date" id="travel_date" name="travel_date" value="<?php echo $post['travel_date']; ?>" required class="bg-gray-50 p-2 rounded-md w-full">
+        </div>
+        <div class="mb-4">
+            <label for="vehicle" class="block text-gray-600 font-semibold mb-2">Preferred Vehicle:</label>
+            <select id="vehicle" name="vehicle" required class="bg-gray-50 p-2 rounded-md w-full">
+                <?php foreach ($vehicles as $vehicle): ?>
+                    <option value="<?php echo $vehicle['vehicle_id']; ?>" <?php if ($post['vehicle'] == $vehicle['vehicle_id']) echo 'selected'; ?>><?php echo $vehicle['name']; ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="gender_preference" class="block text-gray-600 font-semibold mb-2">Gender Preference:</label>
+            <select id="gender_preference" name="gender_preference" required class="bg-gray-50 p-2 rounded-md w-full">
+                <option value="Any" <?php if ($post['gender_preference'] == 'Any') echo 'selected'; ?>>Any</option>
+                <option value="Male" <?php if ($post['gender_preference'] == 'Male') echo 'selected'; ?>>Male</option>
+                <option value="Female" <?php if ($post['gender_preference'] == 'Female') echo 'selected'; ?>>Female</option>
+                <option value="Other" <?php if ($post['gender_preference'] == 'Other') echo 'selected'; ?>>Other</option>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="description" class="block text-gray-600 font-semibold mb-2">Description:</label>
+            <textarea id="description" name="description" rows="3" required class="bg-gray-50 p-2 rounded-md w-full" maxlength="50"><?php echo $post['description']; ?></textarea>
+        </div>
+        <div class="w-full flex justify-center mt-4">
+            <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">Update Post</button>
+        </div>
+    </form>
+    <a href="all_posts.php" class="mt-4 inline-block text-blue-500 hover:underline w-full text-center">Back to All Posts</a>
+</div>
+</body>
+</html>

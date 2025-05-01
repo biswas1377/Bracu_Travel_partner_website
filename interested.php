@@ -1,0 +1,37 @@
+<?php
+include 'db.php';
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$post_id = $_POST['post_id'];
+$interested_user_id = $_SESSION['user_id'];
+
+// Get the post owner's user ID
+$post_owner_sql = "SELECT user_id FROM Posts WHERE id='$post_id'";
+$post_owner_result = $conn->query($post_owner_sql);
+$post_owner_row = $post_owner_result->fetch_assoc();
+$post_owner_id = $post_owner_row['user_id'];
+
+// Check if the interest already exists
+$check_sql = "SELECT * FROM Responses WHERE post_id='$post_id' AND interested_user_id='$interested_user_id'";
+$check_result = $conn->query($check_sql);
+
+if ($check_result->num_rows > 0) {
+    header("Location: all_posts.php?message=You have already shown interest in this post.");
+    exit();
+}
+
+// Insert the interest into the database
+$sql = "INSERT INTO Responses (post_id, user_id, interested_user_id, created_at) VALUES ('$post_id', '$post_owner_id', '$interested_user_id', NOW())";
+if ($conn->query($sql) === TRUE) {
+    header("Location: all_posts.php?message=Interest recorded successfully.");
+    exit();
+} else {
+    header("Location: error.php?message=Error recording interest: " . $conn->error);
+    exit();
+}
+?>

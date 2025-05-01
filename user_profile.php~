@@ -1,0 +1,75 @@
+<?php
+session_start();
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: admin_login.php");
+    exit();
+}
+
+// Include database connection
+include 'admindb.php';
+
+$user_id = $_GET['id'];
+
+// Query to get user details
+$stmt = $conn->prepare("SELECT name, g_suite, contact_profile_link, dob, gender, semester_done, area_id FROM student WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($name, $g_suite, $contact_profile_link, $dob, $gender, $semester_done, $area_id);
+$stmt->fetch();
+$stmt->close();
+
+// Query to get area name
+$stmt = $conn->prepare("SELECT name FROM area WHERE id = ?");
+$stmt->bind_param("i", $area_id);
+$stmt->execute();
+$stmt->bind_result($area_name);
+$stmt->fetch();
+$stmt->close();
+
+$conn->close();
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - BRACu TravelBuddy</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen flex">
+<!-- Sidebar -->
+<div class="bg-blue-800 text-white w-64 min-h-screen p-6">
+    <h2 class="text-2xl font-bold mb-6">Admin Dashboard</h2>
+    <nav>
+        <ul>
+            <li class="mb-4">
+                <a href="admin_dashboard.php" class="block py-2 px-4 rounded hover:bg-blue-700">Dashboard</a>
+            </li>
+            <li class="mb-4">
+                <a href="manage_users.php" class="block py-2 px-4 rounded hover:bg-blue-700">Manage Users</a>
+            </li>
+            
+            <li class="mb-4">
+                <a href="logout.php" class="block py-2 px-4 rounded hover:bg-blue-700">Logout</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="flex-1 p-10">
+    <h1 class="text-3xl font-bold mb-6">User Profile</h1>
+    <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-xl font-bold mb-4">User Details</h2>
+        <p><strong>Name:</strong> <?php echo htmlspecialchars($name); ?></p>
+        <p><strong>G-Suite:</strong> <?php echo htmlspecialchars($g_suite); ?></p>
+        <p><strong>Contact Profile Link:</strong> <a href="<?php echo htmlspecialchars($contact_profile_link); ?>" target="_blank" class="text-blue-500 hover:underline">Visit Profile</a></p>
+        <p><strong>Date of Birth:</strong> <?php echo htmlspecialchars($dob); ?></p>
+        <p><strong>Gender:</strong> <?php echo htmlspecialchars($gender); ?></p>
+        <p><strong>Semester Done:</strong> <?php echo htmlspecialchars($semester_done); ?></p>
+        <p><strong>Area:</strong> <?php echo htmlspecialchars($area_name); ?></p>
+    </div>
+</div>
+</body>
+</html>
